@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <omp.h>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -67,6 +68,8 @@ SimulationInfo read_info(const std::string filename) {
   return info;
 }
 
+// identify_interface関数:
+// 系をx方向にM分割し、原子タイプ1のy座標の重心を計算してファイルに保存
 void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
                         const int M) {
   // static変数で呼ばれた回数をカウント
@@ -79,7 +82,6 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
   filename << "frame" << std::setw(3) << std::setfill('0') << count++ << ".dat";
 
   // ファイルに出力
-  std::cout << filename.str() << std::endl;
   std::ofstream outFile(filename.str());
 
   // ファイルが開けなかった場合はエラーメッセージを表示
@@ -88,28 +90,36 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
     return;
   }
 
-  // M個のビンに対して処理
+  // 各ビンに含まれる原子タイプ1のy座標を格納するためのベクター
+  std::vector<std::vector<double>> bin_y_coordinates(M);
+
+  // 各原子について確認
+  for (const auto &atom : atoms) {
+    // 原子のx座標に対応するビン番号を計算
+    int bin_idx = static_cast<int>(atom.x / bin_width);
+
+    // ビン番号がM以上にならないように調整（最右のビン）
+    if (bin_idx >= M)
+      bin_idx = M - 1;
+
+    // 原子タイプ1ならそのy座標を対応するビンに追加
+    if (atom.type == 1) {
+      bin_y_coordinates[bin_idx].push_back(atom.y);
+    }
+  }
+
+  // ビンごとに重心を計算してファイルに出力
   for (int bin_idx = 0; bin_idx < M; ++bin_idx) {
     // ビンのx座標範囲
     double bin_min = bin_idx * bin_width;
     double bin_max = (bin_idx + 1) * bin_width;
 
-    // ビン内の原子タイプ1のy座標の合計とカウント
-    double total_y = 0.0;
-    int count = 0;
-
-    // 各原子について確認
-    for (const auto &atom : atoms) {
-      // 原子のx座標が現在のビン内にあるかチェック
-      if (atom.x >= bin_min && atom.x < bin_max && atom.type == 1) {
-        total_y += atom.y; // y座標を加算
-        count++;           // 原子のカウント
-      }
-    }
-
     // ビン内に原子タイプ1の原子がいる場合、重心を計算
-    if (count > 0) {
-      double center_y = total_y / count;             // 重心の計算
+    if (!bin_y_coordinates[bin_idx].empty()) {
+      // 重心の計算: y座標の平均
+      double total_y = std::accumulate(bin_y_coordinates[bin_idx].begin(),
+                                       bin_y_coordinates[bin_idx].end(), 0.0);
+      double center_y = total_y / bin_y_coordinates[bin_idx].size();
       double bin_center_x = (bin_min + bin_max) / 2; // ビンのx座標の中心
 
       // ファイルにx, y座標を出力
