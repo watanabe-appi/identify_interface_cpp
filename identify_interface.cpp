@@ -82,6 +82,7 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
   std::ostringstream filename;
   filename << "interface_" << std::setw(3) << std::setfill('0') << count++
            << ".dat";
+  std::cout << filename.str() << std::endl;
 
   // ファイルに出力
   std::ofstream outFile(filename.str());
@@ -147,7 +148,7 @@ void read_atoms(SimulationInfo &si, const std::string &filename) {
     if (line.find("ITEM: ATOMS id type xs ys zs") != std::string::npos) {
       // "ITEM: ATOMS" を見つけた時
       static int frame_count = 0;
-      std::cout << "Frame " << frame_count++ << std::endl;
+      frame_count++;
 
       // 原子座標を読み取る
       current_frame.clear(); // 新しいフレームの開始
@@ -206,10 +207,13 @@ int main(int argc, char *argv[]) {
 
   // SimulationInfo構造体の初期化（シミュレーションボックスサイズと原子数など）
   SimulationInfo si;
-
   // ファイルを読み込んでSimulationInfoとatomsを設定
-  // ここでは仮にread_infoとread_atomsを呼び出す
   si = read_info(filename); // read_infoはシミュレーションの基本情報を読み取る
+  std::cout << "Number of atoms: " << si.atoms << std::endl;
+  std::cout << "System Size:" << std::endl;
+  std::cout << "LX: " << si.LX << std::endl;
+  std::cout << "LY: " << si.LY << std::endl;
+  std::cout << "LZ: " << si.LZ << std::endl;
   read_atoms(si, filename); // read_atomsは原子データを読み取る
   return 0;
 }
