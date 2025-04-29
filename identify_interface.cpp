@@ -135,7 +135,17 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
   outFile.close();
 }
 
-void read_atoms(SimulationInfo &si, const std::string &filename) {
+void read_atoms(const std::string &filename, const int M) {
+
+  SimulationInfo si;
+  // ファイルを読み込んでSimulationInfoとatomsを設定
+  si = read_info(filename); // read_infoはシミュレーションの基本情報を読み取る
+  std::cout << "Number of atoms: " << si.atoms << std::endl;
+  std::cout << "System Size:" << std::endl;
+  std::cout << "LX: " << si.LX << std::endl;
+  std::cout << "LY: " << si.LY << std::endl;
+  std::cout << "LZ: " << si.LZ << std::endl;
+
   std::ifstream file(filename);
   if (!file.is_open()) {
     std::cerr << "ファイルを開けませんでした。" << std::endl;
@@ -176,7 +186,7 @@ void read_atoms(SimulationInfo &si, const std::string &filename) {
         // Atom構造体に格納
         current_frame.push_back({type, x, y, z});
       }
-      identify_interface(si, current_frame, 256);
+      identify_interface(si, current_frame, M);
     }
   }
 
@@ -205,15 +215,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // SimulationInfo構造体の初期化（シミュレーションボックスサイズと原子数など）
-  SimulationInfo si;
-  // ファイルを読み込んでSimulationInfoとatomsを設定
-  si = read_info(filename); // read_infoはシミュレーションの基本情報を読み取る
-  std::cout << "Number of atoms: " << si.atoms << std::endl;
-  std::cout << "System Size:" << std::endl;
-  std::cout << "LX: " << si.LX << std::endl;
-  std::cout << "LY: " << si.LY << std::endl;
-  std::cout << "LZ: " << si.LZ << std::endl;
-  read_atoms(si, filename); // read_atomsは原子データを読み取る
+  const int M = 256; // 分割数
+  read_atoms(filename, M);
   return 0;
 }
