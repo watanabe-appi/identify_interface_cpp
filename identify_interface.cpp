@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
-#include <omp.h>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -79,7 +78,8 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
 
   // ファイル名を"frame" + インデックス + ".dat"の形式にする
   std::ostringstream filename;
-  filename << "frame" << std::setw(3) << std::setfill('0') << count++ << ".dat";
+  filename << "interface_" << std::setw(3) << std::setfill('0') << count++
+           << ".dat";
 
   // ファイルに出力
   std::ofstream outFile(filename.str());
@@ -103,7 +103,7 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
       bin_idx = M - 1;
 
     // 原子タイプ1ならそのy座標を対応するビンに追加
-    if (atom.type == 1) {
+    if (atom.type == 2) {
       bin_y_coordinates[bin_idx].push_back(atom.y);
     }
   }
@@ -142,38 +142,10 @@ std::vector<std::vector<Atom>> read_atoms(SimulationInfo &si,
   }
 
   std::string line;
-  bool atoms_found = false;
-  bool box_found = false;
   std::vector<std::vector<Atom>> all_frames; // 全スナップショットの原子データ
   std::vector<Atom> current_frame; // 現在のスナップショットの原子データ
 
   while (std::getline(file, line)) {
-    if (!box_found && line.find("ITEM: BOX BOUNDS") != std::string::npos) {
-      // ボックスサイズを読み取る
-      double x_min, x_max, y_min, y_max, z_min, z_max;
-      std::getline(file, line);
-      std::istringstream(line) >> x_min >> x_max;
-      si.LX = x_max - x_min;
-
-      std::getline(file, line);
-      std::istringstream(line) >> y_min >> y_max;
-      si.LY = y_max - y_min;
-
-      std::getline(file, line);
-      std::istringstream(line) >> z_min >> z_max;
-      si.LZ = z_max - z_min;
-
-      box_found = true;
-    }
-
-    if (!atoms_found &&
-        line.find("ITEM: NUMBER OF ATOMS") != std::string::npos) {
-      // 次の行に原子数がある
-      std::getline(file, line);
-      si.atoms = std::stoi(line);
-      atoms_found = true;
-    }
-
     if (line.find("ITEM: ATOMS id type xs ys zs") != std::string::npos) {
       // "ITEM: ATOMS" を見つけた時
       static int frame_count = 0;
@@ -205,7 +177,7 @@ std::vector<std::vector<Atom>> read_atoms(SimulationInfo &si,
         // Atom構造体に格納
         current_frame.push_back({type, x, y, z});
       }
-      identify_interface(si, current_frame, 32);
+      identify_interface(si, current_frame, 256);
       all_frames.push_back(current_frame); // フレームを全体に追加
     }
   }

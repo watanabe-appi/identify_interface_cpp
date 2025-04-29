@@ -1,8 +1,8 @@
-all: a.out
+all: identify_interface
 
-a.out: identify_interface.cpp
-	g++ -O3 identify_interface.cpp
+identify_interface: identify_interface.cpp
+	g++ -O3 identify_interface.cpp -o $@
 
 
 clean:
-	rm -f a.out
+	rm -f identify_interface
