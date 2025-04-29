@@ -1,10 +1,12 @@
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 #include <vector>
 
 struct Atom {
@@ -132,17 +134,13 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
   outFile.close();
 }
 
-// read_atoms関数: 原子の位置とタイプを読み取り、2次元ベクターを返す
-std::vector<std::vector<Atom>> read_atoms(SimulationInfo &si,
-                                          const std::string &filename) {
+void read_atoms(SimulationInfo &si, const std::string &filename) {
   std::ifstream file(filename);
   if (!file.is_open()) {
     std::cerr << "ファイルを開けませんでした。" << std::endl;
-    return {}; // 空のベクターを返す
   }
 
   std::string line;
-  std::vector<std::vector<Atom>> all_frames; // 全スナップショットの原子データ
   std::vector<Atom> current_frame; // 現在のスナップショットの原子データ
 
   while (std::getline(file, line)) {
@@ -178,28 +176,40 @@ std::vector<std::vector<Atom>> read_atoms(SimulationInfo &si,
         current_frame.push_back({type, x, y, z});
       }
       identify_interface(si, current_frame, 256);
-      all_frames.push_back(current_frame); // フレームを全体に追加
     }
   }
 
   file.close();
-
-  // 2次元ベクターの返却
-  return all_frames;
 }
 
-int main() {
-  std::string filename = "rho0.6_640x80x10_T1.2_N1_A5_F0.03/"
-                         "rho0.6_640x80x10_T1.2_N1_A5_F0.03.lammpstrj";
-  SimulationInfo si = read_info(filename);
+// ファイルが存在するかどうかを確認する関数
+bool file_exists(const std::string &filename) {
+  struct stat buffer;
+  return (stat(filename.c_str(), &buffer) == 0);
+}
 
-  std::cout << "原子数: " << si.atoms << std::endl;
-  std::cout << "LX: " << si.LX << std::endl;
-  std::cout << "LY: " << si.LY << std::endl;
-  std::cout << "LZ: " << si.LZ << std::endl;
+int main(int argc, char *argv[]) {
+  // 実行時引数がない場合
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " <input_file>" << std::endl;
+    return 1;
+  }
 
-  // 次に原子データを読み取る（2次元ベクターとして返される）
-  std::vector<std::vector<Atom>> all_frames = read_atoms(si, filename);
+  std::string filename = argv[1];
 
+  // ファイルが存在するか確認
+  if (!file_exists(filename)) {
+    std::cerr << "Error: File \"" << filename << "\" does not exist."
+              << std::endl;
+    return 1;
+  }
+
+  // SimulationInfo構造体の初期化（シミュレーションボックスサイズと原子数など）
+  SimulationInfo si;
+
+  // ファイルを読み込んでSimulationInfoとatomsを設定
+  // ここでは仮にread_infoとread_atomsを呼び出す
+  si = read_info(filename); // read_infoはシミュレーションの基本情報を読み取る
+  read_atoms(si, filename); // read_atomsは原子データを読み取る
   return 0;
 }
