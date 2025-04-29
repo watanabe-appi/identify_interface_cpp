@@ -1,11 +1,11 @@
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iomanip>
-#include <numeric>
 
 struct Atom {
   int type;
@@ -79,6 +79,7 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
   filename << "frame" << std::setw(3) << std::setfill('0') << count++ << ".dat";
 
   // ファイルに出力
+  std::cout << filename.str() << std::endl;
   std::ofstream outFile(filename.str());
 
   // ファイルが開けなかった場合はエラーメッセージを表示
@@ -119,7 +120,6 @@ void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
 
   // ファイルを閉じる
   outFile.close();
-  exit(1);
 }
 
 // read_atoms関数: 原子の位置とタイプを読み取り、2次元ベクターを返す
