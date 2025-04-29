@@ -4,6 +4,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iomanip>
+#include <numeric>
 
 struct Atom {
   int type;
@@ -63,6 +65,61 @@ SimulationInfo read_info(const std::string filename) {
 
   file.close();
   return info;
+}
+
+void identify_interface(SimulationInfo &si, std::vector<Atom> &atoms,
+                        const int M) {
+  // static変数で呼ばれた回数をカウント
+  static int count = 0;
+  // M分割におけるビン幅
+  double bin_width = si.LX / M;
+
+  // ファイル名を"frame" + インデックス + ".dat"の形式にする
+  std::ostringstream filename;
+  filename << "frame" << std::setw(3) << std::setfill('0') << count++ << ".dat";
+
+  // ファイルに出力
+  std::ofstream outFile(filename.str());
+
+  // ファイルが開けなかった場合はエラーメッセージを表示
+  if (!outFile.is_open()) {
+    std::cerr << "ファイルを開けませんでした: " << filename.str() << std::endl;
+    return;
+  }
+
+  // M個のビンに対して処理
+  for (int bin_idx = 0; bin_idx < M; ++bin_idx) {
+    // ビンのx座標範囲
+    double bin_min = bin_idx * bin_width;
+    double bin_max = (bin_idx + 1) * bin_width;
+
+    // ビン内の原子タイプ1のy座標の合計とカウント
+    double total_y = 0.0;
+    int count = 0;
+
+    // 各原子について確認
+    for (const auto &atom : atoms) {
+      // 原子のx座標が現在のビン内にあるかチェック
+      if (atom.x >= bin_min && atom.x < bin_max && atom.type == 1) {
+        total_y += atom.y; // y座標を加算
+        count++;           // 原子のカウント
+      }
+    }
+
+    // ビン内に原子タイプ1の原子がいる場合、重心を計算
+    if (count > 0) {
+      double center_y = total_y / count;             // 重心の計算
+      double bin_center_x = (bin_min + bin_max) / 2; // ビンのx座標の中心
+
+      // ファイルにx, y座標を出力
+      outFile << std::fixed << std::setprecision(2) << bin_center_x << " "
+              << center_y << std::endl;
+    }
+  }
+
+  // ファイルを閉じる
+  outFile.close();
+  exit(1);
 }
 
 // read_atoms関数: 原子の位置とタイプを読み取り、2次元ベクターを返す
@@ -138,7 +195,7 @@ std::vector<std::vector<Atom>> read_atoms(SimulationInfo &si,
         // Atom構造体に格納
         current_frame.push_back({type, x, y, z});
       }
-
+      identify_interface(si, current_frame, 32);
       all_frames.push_back(current_frame); // フレームを全体に追加
     }
   }
